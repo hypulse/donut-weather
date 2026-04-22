@@ -1,0 +1,870 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Donut Weather</title>
+    <style>
+      @font-face {
+        font-family: "NanumSquareRound";
+        src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_two@1.0/NanumSquareRound.woff")
+          format("woff");
+        font-weight: normal;
+        font-display: swap;
+      }
+
+      :root {
+        color-scheme: light;
+        --page-bg: #ffffff;
+        --panel-bg: #ffffff;
+        --canvas-bg: #ffffff;
+        --text: #222;
+        --menu-color: #1f1f1f;
+        --muted: #666;
+        --menu-top: clamp(20px, 4vw, 30px);
+        --menu-gap: clamp(24px, 7vw, 60px);
+        --menu-font-size: clamp(14px, 2.4vw, 18px);
+        --menu-padding-y: clamp(8px, 1.6vw, 10px);
+        --menu-padding-x: clamp(10px, 2.4vw, 16px);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          color-scheme: dark;
+          --page-bg: #140b08;
+          --panel-bg: #140b08;
+          --canvas-bg: #2a1710;
+          --text: #f5e2cd;
+          --muted: #d2b293;
+          --menu-color: var(--text);
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+        cursor: none !important;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        background: var(--page-bg);
+        font-family:
+          "NanumSquareRound",
+          Pretendard,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        color: var(--text);
+      }
+
+      body {
+        overflow: hidden;
+      }
+
+      .top-menu {
+        position: fixed;
+        top: var(--menu-top);
+        left: 50%;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        gap: var(--menu-gap);
+        width: min(calc(100vw - 32px), 520px);
+        justify-content: center;
+        transform: translateX(-50%);
+      }
+
+      .top-menu a {
+        position: relative;
+        border: 0;
+        background: transparent;
+        color: var(--menu-color);
+        text-decoration: none;
+        font: inherit;
+        font-size: var(--menu-font-size);
+        font-weight: normal;
+        letter-spacing: 0.06em;
+        white-space: nowrap;
+        cursor: pointer;
+        transform: translateY(0);
+        transition: transform 160ms cubic-bezier(0.4, 0, 0.2, 1);
+        padding: var(--menu-padding-y) var(--menu-padding-x);
+      }
+
+      .top-menu a::before {
+        content: "";
+        position: absolute;
+        inset: -10px -12px;
+      }
+
+      .top-menu a:hover,
+      .top-menu a:focus-visible {
+        transform: translateY(-10px);
+      }
+
+      canvas {
+        width: 100vw;
+        height: 100vh;
+        display: block;
+        touch-action: none;
+        background: var(--canvas-bg);
+        border: 0;
+        border-radius: 0;
+      }
+
+      .cursor-orb {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 3;
+        width: 24px;
+        height: 24px;
+        border: 0;
+        border-radius: 999px;
+        background: #93c5fd;
+        visibility: hidden;
+        opacity: 0;
+        pointer-events: none;
+        transform: translate3d(-50%, -50%, 0);
+        transition:
+          opacity 140ms ease,
+          visibility 0s linear 140ms;
+      }
+
+      .cursor-orb.is-visible {
+        visibility: visible;
+        opacity: 1;
+        transition-delay: 0s;
+      }
+
+      .brand-wordmark {
+        position: fixed;
+        right: 28px;
+        bottom: 24px;
+        z-index: 2;
+        width: 124px;
+        pointer-events: none;
+        user-select: none;
+      }
+
+      .brand-wordmark__image {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      @media (max-width: 680px) {
+        .top-menu {
+          width: min(calc(100vw - 24px), 420px);
+          gap: clamp(10px, 2vw, 16px);
+          justify-content: space-between;
+        }
+
+        .top-menu a {
+          flex: 1 1 0;
+          text-align: center;
+          letter-spacing: 0.03em;
+        }
+      }
+
+      @media (max-width: 420px) {
+        .top-menu {
+          width: calc(100vw - 20px);
+        }
+
+        .top-menu a:hover,
+        .top-menu a:focus-visible {
+          transform: translateY(-6px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="top-menu" aria-label="Primary">
+      <a href="catalog.html#games"><span>Games</span></a>
+      <a href="catalog.html#apps"><span>Apps</span></a>
+      <a href="catalog.html#about"><span>About</span></a>
+    </nav>
+
+    <picture class="brand-wordmark">
+      <source
+        media="(prefers-color-scheme: dark)"
+        srcset="donut-weather-wordmark-ochre.png"
+      />
+      <img
+        class="brand-wordmark__image"
+        src="donut-weather-wordmark-black.png"
+        alt="Donut Weather"
+        draggable="false"
+      />
+    </picture>
+    <div class="cursor-orb" aria-hidden="true"></div>
+    <canvas id="canvas"></canvas>
+
+    <script>
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+      const cursorOrb = document.querySelector(".cursor-orb");
+      const themeMedia = window.matchMedia("(prefers-color-scheme: dark)");
+      let canvasBackground = "#ffffff";
+      const PARTICLE_DENSITY = 0.00032;
+      const MAX_PARTICLE_COUNT = 1000;
+      const SPRINKLE_BASE_SIZE = 12;
+      const RESIZE_DEBOUNCE_MS = 120;
+      const SHAKE_SPEED_THRESHOLD = 18;
+      const SHAKE_DIRECTION_THRESHOLD = 6;
+      const SHAKE_REVERSAL_WINDOW_MS = 260;
+      const SHAKE_REVERSAL_COUNT = 1;
+      const CURSOR_VISIBLE_MS = 3800;
+      const DISTRIBUTIONS = [
+        "uniform",
+        "gaussian",
+        "ring",
+        "clusters",
+        "edge",
+        "leftBias",
+      ];
+      const RANDOM_DISTRIBUTIONS = DISTRIBUTIONS.filter(
+        (distribution) => distribution !== "uniform" && distribution !== "leftBias",
+      );
+      let currentDistribution = pick(RANDOM_DISTRIBUTIONS);
+      let resizeDebounceId = 0;
+      let cursorHideTimeoutId = 0;
+      let lastMotionX = 0;
+      let lastMotionY = 0;
+      let lastReversalAt = 0;
+      let reversalCount = 0;
+
+      const COLORS = [
+        "#A7F3D0", // mint
+        "#FDE68A", // yellow
+        "#F9A8D4", // pink
+        "#93C5FD", // blue
+        "#C4B5FD", // lavender
+        "#FDBA74", // peach
+      ];
+
+      let clusterSeeds = [];
+      const particles = [];
+      const viewport = { width: 0, height: 0 };
+      const pointer = {
+        x: 0,
+        y: 0,
+        vx: 0,
+        vy: 0,
+        active: false,
+        radius: 40,
+        strength: 0.95,
+      };
+      const PHYSICS = {
+        drag: 0.88,
+        spinDrag: 0.8,
+        wallBounce: 0.05,
+        collisionBounce: 0.02,
+        collisionFriction: 0.3,
+        solverPasses: 3,
+        cellSize: 34,
+        maxSpeed: 2.6,
+        sleepSpeed: 0.14,
+        sleepSpin: 0.006,
+        pointerCarry: 0.004,
+        contactPush: 0.08,
+        lowSpeedDampingThreshold: 0.45,
+        lowSpeedDamping: 0.35,
+        lowSpinDampingThreshold: 0.02,
+        lowSpinDamping: 0.45,
+      };
+
+      function rand(min = 0, max = 1) {
+        return Math.random() * (max - min) + min;
+      }
+
+      function pick(arr) {
+        return arr[Math.floor(Math.random() * arr.length)];
+      }
+
+      function clamp(v, min, max) {
+        return Math.max(min, Math.min(max, v));
+      }
+
+      function readCssVar(name) {
+        return getComputedStyle(document.documentElement)
+          .getPropertyValue(name)
+          .trim();
+      }
+
+      function syncTheme() {
+        canvasBackground = readCssVar("--canvas-bg") || "#ffffff";
+      }
+
+      function syncCursorColor() {
+        cursorOrb.style.background = pick(COLORS);
+      }
+
+      function getParticleCount() {
+        const area = viewport.width * viewport.height;
+        return Math.min(
+          MAX_PARTICLE_COUNT,
+          Math.max(1, Math.round(area * PARTICLE_DENSITY)),
+        );
+      }
+
+      // Box-Muller transform
+      function randn() {
+        let u = 0,
+          v = 0;
+        while (u === 0) u = Math.random();
+        while (v === 0) v = Math.random();
+        return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+      }
+
+      function resizeCanvas() {
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+
+        canvas.width = Math.round(rect.width * dpr);
+        canvas.height = Math.round(rect.height * dpr);
+
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        viewport.width = rect.width;
+        viewport.height = rect.height;
+        rebuildParticles();
+        render();
+      }
+
+      function scheduleResizeCanvas() {
+        window.clearTimeout(resizeDebounceId);
+        resizeDebounceId = window.setTimeout(() => {
+          resizeDebounceId = 0;
+          resizeCanvas();
+        }, RESIZE_DEBOUNCE_MS);
+      }
+
+      function makeClusters(w, h) {
+        const count = Math.floor(rand(3, 7));
+        const clusters = [];
+
+        for (let i = 0; i < count; i++) {
+          clusters.push({
+            x: rand(w * 0.15, w * 0.85),
+            y: rand(h * 0.15, h * 0.85),
+            sx: rand(w * 0.04, w * 0.11),
+            sy: rand(h * 0.04, h * 0.11),
+          });
+        }
+
+        return clusters;
+      }
+
+      function samplePoint(distribution, w, h) {
+        const cx = w / 2;
+        const cy = h / 2;
+
+        switch (distribution) {
+          case "uniform": {
+            return { x: rand(0, w), y: rand(0, h) };
+          }
+
+          case "gaussian": {
+            for (let i = 0; i < 30; i++) {
+              const x = cx + randn() * w * 0.18;
+              const y = cy + randn() * h * 0.18;
+              if (x >= 0 && x <= w && y >= 0 && y <= h) {
+                return { x, y };
+              }
+            }
+            return { x: rand(0, w), y: rand(0, h) };
+          }
+
+          case "ring": {
+            const angle = rand(0, Math.PI * 2);
+            const baseR = Math.min(w, h) * 0.28;
+            const radius = Math.abs(baseR + randn() * Math.min(w, h) * 0.06);
+
+            return {
+              x: clamp(cx + Math.cos(angle) * radius, 0, w),
+              y: clamp(cy + Math.sin(angle) * radius, 0, h),
+            };
+          }
+
+          case "clusters": {
+            const c = pick(clusterSeeds);
+            for (let i = 0; i < 30; i++) {
+              const x = c.x + randn() * c.sx;
+              const y = c.y + randn() * c.sy;
+              if (x >= 0 && x <= w && y >= 0 && y <= h) {
+                return { x, y };
+              }
+            }
+            return { x: rand(0, w), y: rand(0, h) };
+          }
+
+          case "edge": {
+            const side = Math.floor(rand(0, 4));
+            const spread = Math.min(w, h) * 0.09;
+
+            if (side === 0)
+              return {
+                x: rand(0, w),
+                y: clamp(Math.abs(randn()) * spread, 0, h),
+              };
+            if (side === 1)
+              return {
+                x: rand(0, w),
+                y: clamp(h - Math.abs(randn()) * spread, 0, h),
+              };
+            if (side === 2)
+              return {
+                x: clamp(Math.abs(randn()) * spread, 0, w),
+                y: rand(0, h),
+              };
+            return {
+              x: clamp(w - Math.abs(randn()) * spread, 0, w),
+              y: rand(0, h),
+            };
+          }
+
+          case "leftBias": {
+            const x = Math.pow(Math.random(), 1.9) * w;
+            const y = rand(0, h);
+            return { x, y };
+          }
+
+          default:
+            return { x: rand(0, w), y: rand(0, h) };
+        }
+      }
+
+      function roundedRectPath(ctx, x, y, width, height, radius) {
+        const r = Math.min(radius, width / 2, height / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + width - r, y);
+        ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+        ctx.lineTo(x + width, y + height - r);
+        ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+        ctx.lineTo(x + r, y + height);
+        ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+      }
+
+      function makeParticle(x, y, baseSize) {
+        const length = baseSize * rand(1.1, 1.85);
+        const thickness = baseSize * rand(0.43, 0.67);
+        const collisionRadius = Math.max(thickness * 1.15, length * 0.26);
+        const mass = clamp(collisionRadius * collisionRadius * 0.16, 1.4, 18);
+
+        return {
+          x,
+          y,
+          vx: 0,
+          vy: 0,
+          mass,
+          invMass: 1 / mass,
+          length,
+          thickness,
+          radius: thickness / 2,
+          collisionRadius,
+          angle: rand(0, Math.PI * 2),
+          angularVelocity: rand(-0.015, 0.015),
+          color: pick(COLORS),
+        };
+      }
+
+      function drawSprinkle(particle) {
+        const { x, y, angle, color, length, thickness, radius } = particle;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+
+        ctx.fillStyle = color;
+        roundedRectPath(
+          ctx,
+          -length / 2,
+          -thickness / 2,
+          length,
+          thickness,
+          radius,
+        );
+        ctx.fill();
+
+        ctx.restore();
+      }
+
+      function render() {
+        const w = viewport.width;
+        const h = viewport.height;
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = canvasBackground;
+        ctx.fillRect(0, 0, w, h);
+        particles.forEach(drawSprinkle);
+      }
+
+      function rebuildParticles() {
+        const w = viewport.width;
+        const h = viewport.height;
+
+        if (!w || !h) return;
+
+        const count = getParticleCount();
+        const size = SPRINKLE_BASE_SIZE;
+        const distribution = currentDistribution;
+
+        particles.length = 0;
+
+        if (distribution === "clusters") {
+          clusterSeeds = makeClusters(w, h);
+        }
+
+        for (let i = 0; i < count; i++) {
+          const { x, y } = samplePoint(distribution, w, h);
+          const localSize = size * rand(0.84, 1.16);
+          particles.push(makeParticle(x, y, localSize));
+        }
+
+        settleParticles();
+      }
+
+      function applyPointerForces() {
+        particles.forEach((particle) => {
+          const interactionRadius = pointer.radius + particle.collisionRadius * 0.4;
+          const dx = particle.x - pointer.x;
+          const dy = particle.y - pointer.y;
+          const distSq = dx * dx + dy * dy;
+
+          if (distSq >= interactionRadius * interactionRadius) return;
+
+          const dist = Math.max(0.001, Math.sqrt(distSq));
+          const force = 1 - dist / interactionRadius;
+          const nx = dx / dist;
+          const ny = dy / dist;
+          const overlap = interactionRadius - dist;
+          const shove = overlap * force * PHYSICS.contactPush;
+          const impulse = (force * pointer.strength) / particle.mass;
+
+          particle.x += nx * shove;
+          particle.y += ny * shove;
+          particle.vx =
+            particle.vx * 0.58 +
+            nx * impulse +
+            pointer.vx * force * PHYSICS.pointerCarry;
+          particle.vy =
+            particle.vy * 0.58 +
+            ny * impulse +
+            pointer.vy * force * PHYSICS.pointerCarry;
+          particle.angularVelocity +=
+            ((nx * pointer.vy - ny * pointer.vx) * force) / (particle.mass * 240);
+        });
+      }
+
+      function integrateParticles() {
+        particles.forEach((particle) => {
+          particle.vx *= PHYSICS.drag;
+          particle.vy *= PHYSICS.drag;
+          particle.angularVelocity *= PHYSICS.spinDrag;
+
+          const speed = Math.hypot(particle.vx, particle.vy);
+          if (speed > PHYSICS.maxSpeed) {
+            const scale = PHYSICS.maxSpeed / speed;
+            particle.vx *= scale;
+            particle.vy *= scale;
+          }
+
+          particle.x += particle.vx;
+          particle.y += particle.vy;
+          particle.angle += particle.angularVelocity;
+        });
+
+        constrainParticlesToBounds(PHYSICS.wallBounce);
+      }
+
+      function settleSleepingParticles() {
+        particles.forEach((particle) => {
+          const speed = Math.hypot(particle.vx, particle.vy);
+
+          if (speed < PHYSICS.lowSpeedDampingThreshold) {
+            particle.vx *= PHYSICS.lowSpeedDamping;
+            particle.vy *= PHYSICS.lowSpeedDamping;
+          }
+
+          if (speed < PHYSICS.sleepSpeed) {
+            particle.vx = 0;
+            particle.vy = 0;
+          }
+
+          if (
+            Math.abs(particle.angularVelocity) < PHYSICS.lowSpinDampingThreshold
+          ) {
+            particle.angularVelocity *= PHYSICS.lowSpinDamping;
+          }
+
+          if (Math.abs(particle.angularVelocity) < PHYSICS.sleepSpin) {
+            particle.angularVelocity = 0;
+          }
+        });
+      }
+
+      function constrainParticlesToBounds(bounce = 0) {
+        const w = viewport.width;
+        const h = viewport.height;
+
+        particles.forEach((particle) => {
+          if (particle.x - particle.collisionRadius < 0) {
+            particle.x = particle.collisionRadius;
+            particle.vx = Math.abs(particle.vx) * bounce;
+            particle.angularVelocity += particle.vy * 0.002;
+          } else if (particle.x + particle.collisionRadius > w) {
+            particle.x = w - particle.collisionRadius;
+            particle.vx = -Math.abs(particle.vx) * bounce;
+            particle.angularVelocity -= particle.vy * 0.002;
+          }
+
+          if (particle.y - particle.collisionRadius < 0) {
+            particle.y = particle.collisionRadius;
+            particle.vy = Math.abs(particle.vy) * bounce;
+            particle.angularVelocity -= particle.vx * 0.002;
+          } else if (particle.y + particle.collisionRadius > h) {
+            particle.y = h - particle.collisionRadius;
+            particle.vy = -Math.abs(particle.vy) * bounce;
+            particle.angularVelocity += particle.vx * 0.002;
+          }
+        });
+      }
+
+      function getCellKey(x, y) {
+        return `${x},${y}`;
+      }
+
+      function buildSpatialHash() {
+        const grid = new Map();
+
+        particles.forEach((particle, index) => {
+          const cellX = Math.floor(particle.x / PHYSICS.cellSize);
+          const cellY = Math.floor(particle.y / PHYSICS.cellSize);
+          const key = getCellKey(cellX, cellY);
+
+          if (!grid.has(key)) {
+            grid.set(key, []);
+          }
+
+          grid.get(key).push(index);
+        });
+
+        return grid;
+      }
+
+      function solvePairCollision(a, b, preserveVelocity = false) {
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const minDist = a.collisionRadius + b.collisionRadius;
+        const distSq = dx * dx + dy * dy;
+
+        if (distSq >= minDist * minDist) return;
+
+        const dist = Math.max(0.001, Math.sqrt(distSq));
+        const nx = dx / dist;
+        const ny = dy / dist;
+        const overlap = minDist - dist;
+        const totalInvMass = a.invMass + b.invMass;
+
+        a.x -= nx * overlap * (a.invMass / totalInvMass);
+        a.y -= ny * overlap * (a.invMass / totalInvMass);
+        b.x += nx * overlap * (b.invMass / totalInvMass);
+        b.y += ny * overlap * (b.invMass / totalInvMass);
+
+        if (preserveVelocity) return;
+
+        const rvx = b.vx - a.vx;
+        const rvy = b.vy - a.vy;
+        const normalVelocity = rvx * nx + rvy * ny;
+
+        if (normalVelocity < 0) {
+          const impulse =
+            (-(1 + PHYSICS.collisionBounce) * normalVelocity) / totalInvMass;
+
+          a.vx -= nx * impulse * a.invMass;
+          a.vy -= ny * impulse * a.invMass;
+          b.vx += nx * impulse * b.invMass;
+          b.vy += ny * impulse * b.invMass;
+        }
+
+        const tx = -ny;
+        const ty = nx;
+        const tangentVelocity = rvx * tx + rvy * ty;
+        const frictionImpulse =
+          (tangentVelocity * PHYSICS.collisionFriction) / totalInvMass;
+
+        a.vx += tx * frictionImpulse * a.invMass;
+        a.vy += ty * frictionImpulse * a.invMass;
+        b.vx -= tx * frictionImpulse * b.invMass;
+        b.vy -= ty * frictionImpulse * b.invMass;
+
+        a.angularVelocity -= tangentVelocity * 0.0025 * a.invMass;
+        b.angularVelocity += tangentVelocity * 0.0025 * b.invMass;
+      }
+
+      function resolveParticleCollisions(preserveVelocity = false) {
+        const grid = buildSpatialHash();
+        const neighborOffsets = [
+          [0, 0],
+          [1, 0],
+          [0, 1],
+          [1, 1],
+          [-1, 1],
+        ];
+
+        grid.forEach((indices, key) => {
+          const [cellX, cellY] = key.split(",").map(Number);
+
+          neighborOffsets.forEach(([dx, dy]) => {
+            const otherIndices = grid.get(getCellKey(cellX + dx, cellY + dy));
+            if (!otherIndices) return;
+
+            indices.forEach((aIndex, localIndex) => {
+              const startIndex = dx === 0 && dy === 0 ? localIndex + 1 : 0;
+
+              for (let i = startIndex; i < otherIndices.length; i++) {
+                const bIndex = otherIndices[i];
+                solvePairCollision(particles[aIndex], particles[bIndex], preserveVelocity);
+              }
+            });
+          });
+        });
+      }
+
+      function settleParticles() {
+        for (let pass = 0; pass < 7; pass++) {
+          resolveParticleCollisions(true);
+          constrainParticlesToBounds(0);
+        }
+      }
+
+      function updateParticles() {
+        if (pointer.active) {
+          applyPointerForces();
+          constrainParticlesToBounds(0);
+        }
+
+        integrateParticles();
+
+        for (let pass = 0; pass < PHYSICS.solverPasses; pass++) {
+          resolveParticleCollisions(false);
+          constrainParticlesToBounds(0);
+        }
+
+        settleSleepingParticles();
+
+        pointer.vx *= 0.78;
+        pointer.vy *= 0.78;
+      }
+
+      function animate() {
+        updateParticles();
+        render();
+        requestAnimationFrame(animate);
+      }
+
+      function moveCursorOrb(clientX, clientY) {
+        cursorOrb.style.transform = `translate3d(${clientX}px, ${clientY}px, 0) translate(-50%, -50%)`;
+      }
+
+      function showCursorOrb() {
+        window.clearTimeout(cursorHideTimeoutId);
+        if (!cursorOrb.classList.contains("is-visible")) {
+          syncCursorColor();
+        }
+        cursorOrb.classList.add("is-visible");
+        cursorHideTimeoutId = window.setTimeout(() => {
+          cursorOrb.classList.remove("is-visible");
+        }, CURSOR_VISIBLE_MS);
+      }
+
+      function updateShakeState(deltaX, deltaY, timeStamp) {
+        const speed = Math.hypot(deltaX, deltaY);
+        const reversedX =
+          Math.abs(deltaX) > SHAKE_DIRECTION_THRESHOLD &&
+          Math.abs(lastMotionX) > SHAKE_DIRECTION_THRESHOLD &&
+          Math.sign(deltaX) !== Math.sign(lastMotionX);
+        const reversedY =
+          Math.abs(deltaY) > SHAKE_DIRECTION_THRESHOLD &&
+          Math.abs(lastMotionY) > SHAKE_DIRECTION_THRESHOLD &&
+          Math.sign(deltaY) !== Math.sign(lastMotionY);
+
+        if (speed > SHAKE_SPEED_THRESHOLD && (reversedX || reversedY)) {
+          if (timeStamp - lastReversalAt <= SHAKE_REVERSAL_WINDOW_MS) {
+            reversalCount += 1;
+          } else {
+            reversalCount = 1;
+          }
+
+          lastReversalAt = timeStamp;
+        } else if (timeStamp - lastReversalAt > SHAKE_REVERSAL_WINDOW_MS) {
+          reversalCount = 0;
+        }
+
+        if (reversalCount >= SHAKE_REVERSAL_COUNT) {
+          showCursorOrb();
+          reversalCount = 0;
+        }
+
+        lastMotionX = deltaX;
+        lastMotionY = deltaY;
+      }
+
+      function handlePointerMove(event) {
+        const rect = canvas.getBoundingClientRect();
+        const nextX = event.clientX - rect.left;
+        const nextY = event.clientY - rect.top;
+        const deltaX = pointer.active ? nextX - pointer.x : 0;
+        const deltaY = pointer.active ? nextY - pointer.y : 0;
+
+        if (pointer.active) {
+          pointer.vx = deltaX;
+          pointer.vy = deltaY;
+        } else {
+          pointer.vx = 0;
+          pointer.vy = 0;
+        }
+
+        moveCursorOrb(event.clientX, event.clientY);
+        updateShakeState(deltaX, deltaY, event.timeStamp);
+        pointer.x = nextX;
+        pointer.y = nextY;
+        pointer.active = true;
+      }
+
+      function resetPointer() {
+        pointer.active = false;
+        pointer.vx = 0;
+        pointer.vy = 0;
+        lastMotionX = 0;
+        lastMotionY = 0;
+        lastReversalAt = 0;
+        reversalCount = 0;
+        window.clearTimeout(cursorHideTimeoutId);
+        cursorOrb.classList.remove("is-visible");
+      }
+      window.addEventListener("pointermove", handlePointerMove);
+      window.addEventListener("pointerleave", resetPointer);
+      window.addEventListener("pointercancel", resetPointer);
+      window.addEventListener("resize", scheduleResizeCanvas);
+      window.addEventListener("blur", resetPointer);
+      if (themeMedia.addEventListener) {
+        themeMedia.addEventListener("change", syncTheme);
+      } else {
+        themeMedia.addListener(syncTheme);
+      }
+
+      syncTheme();
+      resizeCanvas();
+      animate();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Donut Weather Catalog</title>
+    <style>
+      @font-face {
+        font-family: "NanumSquareRound";
+        src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_two@1.0/NanumSquareRound.woff")
+          format("woff");
+        font-weight: normal;
+        font-display: swap;
+      }
+
+      :root {
+        color-scheme: light;
+        --page-bg: #fbf7f1;
+        --line: rgba(55, 31, 24, 0.1);
+        --text: #1f1714;
+        --muted: #6f625c;
+        --accent: #d46865;
+        --link-accent: #b27a48;
+        --accent-soft: rgba(212, 104, 101, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--page-bg);
+        color: var(--text);
+        display: flex;
+        flex-direction: column;
+        font-family:
+          "NanumSquareRound",
+          Pretendard,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .site-header {
+        padding-top: 28px;
+      }
+
+      .site-header__inner {
+        width: min(1160px, calc(100% - 32px));
+        margin: 0 auto;
+        display: flex;
+        justify-content: center;
+        padding-bottom: 28px;
+      }
+
+      .site-header__logo {
+        width: 110px;
+        height: auto;
+        display: block;
+      }
+
+      .site-intro {
+        width: min(1160px, calc(100% - 32px));
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .site-main {
+        width: min(1160px, calc(100% - 32px));
+        margin: 52px auto 0;
+      }
+
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      .game-section {
+        display: grid;
+        grid-template-columns: minmax(0, 0.95fr) minmax(320px, 0.85fr);
+        gap: 36px;
+        align-items: start;
+      }
+
+      .content-group {
+        display: grid;
+        gap: 48px;
+      }
+
+      .content-group__heading {
+        margin: 0;
+        font-size: clamp(24px, 3vw, 34px);
+        line-height: 1.1;
+        letter-spacing: -0.03em;
+      }
+
+      .content-divider {
+        display: flex;
+        justify-content: center;
+        margin: 56px 0;
+      }
+
+      .game-section__video {
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        border: 0;
+        display: block;
+      }
+
+      .game-section__body {
+        width: 100%;
+        padding-top: 2px;
+        text-align: left;
+      }
+
+      .game-section__title-image {
+        display: block;
+        height: 76px;
+        width: auto;
+      }
+
+      .game-section__description {
+        margin: 12px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.8;
+      }
+
+      .game-section__links {
+        display: flex;
+        flex-direction: row;
+        align-items: flex-start;
+        gap: 18px;
+        margin-top: 16px;
+        color: var(--link-accent);
+        font-size: 15px;
+      }
+
+      .game-section__links a {
+        display: inline-flex;
+        align-items: center;
+        line-height: 1;
+        text-decoration: none;
+      }
+
+      .ornament-divider {
+        position: relative;
+        width: min(260px, 100%);
+        height: 1px;
+      }
+
+      .ornament-divider::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(
+            to right,
+            rgba(31, 23, 20, 0.28) 0,
+            rgba(31, 23, 20, 0.28) calc(50% - 12px),
+            transparent calc(50% - 12px),
+            transparent calc(50% + 12px),
+            rgba(31, 23, 20, 0.28) calc(50% + 12px),
+            rgba(31, 23, 20, 0.28) 100%
+          );
+      }
+
+      .ornament-divider::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 50%;
+        width: 7px;
+        height: 7px;
+        background: rgba(31, 23, 20, 0.28);
+        transform: translate(-50%, -50%) rotate(45deg);
+      }
+
+      .site-intro__divider {
+        margin-top: 26px;
+      }
+
+      .site-footer {
+        width: min(1160px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 36px 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .site-footer-divider {
+        width: min(1160px, calc(100% - 32px));
+        margin: auto auto 0;
+        display: flex;
+        justify-content: center;
+      }
+
+      .site-main + .site-footer-divider {
+        margin-top: 56px;
+      }
+
+      .site-intro__copy,
+      .site-footer__copy {
+        margin: 0;
+        max-width: 520px;
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.9;
+        text-align: center;
+      }
+
+      .site-footer__copy {
+        color: rgba(111, 98, 92, 0.78);
+        font-size: 12px;
+        letter-spacing: 0.04em;
+      }
+
+      .site-intro__copy + .site-intro__copy,
+      .site-footer__copy + .site-footer__copy {
+        margin-top: 18px;
+      }
+
+      @media (max-width: 900px) {
+        .content-group {
+          gap: 36px;
+        }
+
+        .game-section {
+          grid-template-columns: 1fr;
+          gap: 24px;
+        }
+
+        .game-section__body {
+          padding-top: 0;
+        }
+      }
+
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="site-header__inner">
+        <img
+          class="site-header__logo"
+          src="donut-weather-wordmark-black.png"
+          alt="Donut Weather"
+        />
+      </div>
+    </header>
+
+    <section class="site-intro">
+      <p class="site-intro__copy">
+        Donut Weather는 작고 느슨하게 움직이는 인디 프로젝트 팀입니다. 우리의
+        목표는 직접 만들고 싶은 장면과 분위기를 차분하게 쌓아 올리며, 오래
+        머물고 싶어지는 작은 세계를 선보이는 것입니다.
+      </p>
+      <div class="ornament-divider site-intro__divider" aria-hidden="true"></div>
+    </section>
+
+    <main class="site-main" id="site-main"></main>
+
+    <div class="site-footer-divider" aria-hidden="true">
+      <div class="ornament-divider"></div>
+    </div>
+
+    <footer class="site-footer">
+      <p class="site-footer__copy">
+        Copyright © <span id="current-year"></span> Donut Weather
+      </p>
+    </footer>
+
+    <script>
+      const CONTENT_SECTIONS = [];
+
+      const siteMain = document.getElementById("site-main");
+
+      function createLinkMarkup(link) {
+        const externalAttrs = link.href.startsWith("http")
+          ? ' target="_blank" rel="noreferrer"'
+          : "";
+
+        return `<a href="${link.href}"${externalAttrs}>${link.label}</a>`;
+      }
+
+      function createItemMarkup(item) {
+        return `
+          <div class="game-section">
+            <iframe
+              class="game-section__video"
+              src="${item.videoUrl}"
+              title="${item.videoTitle}"
+              loading="lazy"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerpolicy="strict-origin-when-cross-origin"
+              allowfullscreen
+            ></iframe>
+
+            <div class="game-section__body">
+              <img
+                class="game-section__title-image"
+                src="${item.titleImage}"
+                alt="${item.titleAlt}"
+              />
+              <p class="game-section__description">${item.description}</p>
+              <div class="game-section__links">
+                ${item.links.map(createLinkMarkup).join("")}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      function createSectionMarkup(section) {
+        return `
+          <section class="content-group" id="${section.id}" aria-labelledby="${section.id}-title">
+            <h2 class="content-group__heading" id="${section.id}-title">${section.heading}</h2>
+            ${section.items.map(createItemMarkup).join("")}
+          </section>
+        `;
+      }
+
+      siteMain.innerHTML = CONTENT_SECTIONS.map((section, index) => {
+        const sectionMarkup = createSectionMarkup(section);
+
+        const dividerMarkup =
+          index < CONTENT_SECTIONS.length - 1
+            ? `
+              <div class="content-divider" aria-hidden="true">
+                <div class="ornament-divider"></div>
+              </div>
+            `
+            : "";
+
+        return sectionMarkup + dividerMarkup;
+      }).join("");
+
+      document.getElementById("current-year").textContent =
+        new Date().getFullYear();
+    </script>
+  </body>
+</html>
