@@ -219,6 +219,7 @@
       const ctx = canvas.getContext("2d");
       const cursorOrb = document.querySelector(".cursor-orb");
       const themeMedia = window.matchMedia("(prefers-color-scheme: dark)");
+      const coarsePointerMedia = window.matchMedia("(pointer: coarse)");
       let canvasBackground = "#ffffff";
       const PARTICLE_DENSITY = 0.00032;
       const MAX_PARTICLE_COUNT = 1000;
@@ -287,6 +288,20 @@
         lowSpinDampingThreshold: 0.02,
         lowSpinDamping: 0.45,
       };
+      const INTERACTION_PROFILES = {
+        desktop: {
+          pointerRadius: 46,
+          pointerStrength: 1.12,
+          pointerCarry: 0.005,
+          contactPush: 0.095,
+        },
+        mobile: {
+          pointerRadius: 58,
+          pointerStrength: 1.35,
+          pointerCarry: 0.007,
+          contactPush: 0.12,
+        },
+      };
 
       function rand(min = 0, max = 1) {
         return Math.random() * (max - min) + min;
@@ -308,6 +323,17 @@
 
       function syncTheme() {
         canvasBackground = readCssVar("--canvas-bg") || "#ffffff";
+      }
+
+      function syncInteractionProfile() {
+        const profile = coarsePointerMedia.matches
+          ? INTERACTION_PROFILES.mobile
+          : INTERACTION_PROFILES.desktop;
+
+        pointer.radius = profile.pointerRadius;
+        pointer.strength = profile.pointerStrength;
+        PHYSICS.pointerCarry = profile.pointerCarry;
+        PHYSICS.contactPush = profile.contactPush;
       }
 
       function syncCursorColor() {
@@ -869,8 +895,14 @@
       } else {
         themeMedia.addListener(syncTheme);
       }
+      if (coarsePointerMedia.addEventListener) {
+        coarsePointerMedia.addEventListener("change", syncInteractionProfile);
+      } else {
+        coarsePointerMedia.addListener(syncInteractionProfile);
+      }
 
       syncTheme();
+      syncInteractionProfile();
       resizeCanvas();
       animate();
     </script>
