@@ -65,6 +65,11 @@
         padding-bottom: 28px;
       }
 
+      .site-header__logo-link {
+        display: inline-flex;
+        align-items: center;
+      }
+
       .site-header__logo {
         width: 110px;
         height: auto;
@@ -174,16 +179,15 @@
         content: "";
         position: absolute;
         inset: 0;
-        background:
-          linear-gradient(
-            to right,
-            rgba(31, 23, 20, 0.28) 0,
-            rgba(31, 23, 20, 0.28) calc(50% - 12px),
-            transparent calc(50% - 12px),
-            transparent calc(50% + 12px),
-            rgba(31, 23, 20, 0.28) calc(50% + 12px),
-            rgba(31, 23, 20, 0.28) 100%
-          );
+        background: linear-gradient(
+          to right,
+          rgba(31, 23, 20, 0.28) 0,
+          rgba(31, 23, 20, 0.28) calc(50% - 12px),
+          transparent calc(50% - 12px),
+          transparent calc(50% + 12px),
+          rgba(31, 23, 20, 0.28) calc(50% + 12px),
+          rgba(31, 23, 20, 0.28) 100%
+        );
       }
 
       .ornament-divider::after {
@@ -257,28 +261,35 @@
           padding-top: 0;
         }
       }
-
     </style>
   </head>
   <body>
     <header class="site-header">
       <div class="site-header__inner">
-        <img
-          class="site-header__logo"
-          src="donut-weather-wordmark-black.png"
-          alt="Donut Weather"
-        />
+        <a
+          class="site-header__logo-link"
+          href="index.html"
+          aria-label="Go to home"
+        >
+          <img
+            class="site-header__logo"
+            src="donut-weather-wordmark-black.png"
+            alt="Donut Weather"
+          />
+        </a>
       </div>
     </header>
 
     <section class="site-intro">
       <p class="site-intro__copy">
-        Donut Weather는 미묘한 어긋남과 엉뚱한 아름다움에서 출발하는 작은 인디
-        프로젝트 팀입니다. 빗물에 젖은 도넛처럼, 예상 밖의 장면이 남기는
-        낯설지만 선명한 감각을 소중히 여깁니다. 우리의 목표는 한순간의 인상을
-        넘어, 오래 머물고 싶어지는 작은 세계를 만드는 것입니다.
+        Donut Weather는 미묘한 어긋남과 엉뚱한 아름다움에서 출발하는 인디
+        프로젝트입니다. 예상 밖의 순간이 남기는 낯설고 선명한 감각으로, 오래
+        머물고 싶은 작은 세계를 만듭니다.
       </p>
-      <div class="ornament-divider site-intro__divider" aria-hidden="true"></div>
+      <div
+        class="ornament-divider site-intro__divider"
+        aria-hidden="true"
+      ></div>
     </section>
 
     <main class="site-main" id="site-main"></main>

@@ -239,7 +239,8 @@
         "leftBias",
       ];
       const RANDOM_DISTRIBUTIONS = DISTRIBUTIONS.filter(
-        (distribution) => distribution !== "uniform" && distribution !== "leftBias",
+        (distribution) =>
+          distribution !== "uniform" && distribution !== "leftBias",
       );
       let currentDistribution = pick(RANDOM_DISTRIBUTIONS);
       let resizeDebounceId = 0;
@@ -568,7 +569,8 @@
 
       function applyPointerForces() {
         particles.forEach((particle) => {
-          const interactionRadius = pointer.radius + particle.collisionRadius * 0.4;
+          const interactionRadius =
+            pointer.radius + particle.collisionRadius * 0.4;
           const dx = particle.x - pointer.x;
           const dy = particle.y - pointer.y;
           const distSq = dx * dx + dy * dy;
@@ -594,7 +596,8 @@
             ny * impulse +
             pointer.vy * force * PHYSICS.pointerCarry;
           particle.angularVelocity +=
-            ((nx * pointer.vy - ny * pointer.vx) * force) / (particle.mass * 240);
+            ((nx * pointer.vy - ny * pointer.vx) * force) /
+            (particle.mass * 240);
         });
       }
 
@@ -766,7 +769,11 @@
 
               for (let i = startIndex; i < otherIndices.length; i++) {
                 const bIndex = otherIndices[i];
-                solvePairCollision(particles[aIndex], particles[bIndex], preserveVelocity);
+                solvePairCollision(
+                  particles[aIndex],
+                  particles[bIndex],
+                  preserveVelocity,
+                );
               }
             });
           });
